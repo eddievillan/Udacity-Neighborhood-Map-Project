@@ -5,15 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Neighborhood Map Project</title>
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" media="(max-width: 670px)" href="css/responsive.css">
 </head>
 <body>
-    <div id="google-map"></div>
-    <div class="search-container">
-        <div class="marker-search-nav">
-            <input class="input" placeholder="Search Markers…" type="input" data-bind="textInput: query, valueUpdate: 'keydown'">
-            <div class="scroller">
-                <ul data-bind="foreach: {data: myMarkers, as: 'marker'}">
-                    <div data-bind="visible: visible, click: $parent.openWindow(marker)">
+    <style>
+        * {box-sizing:border-box;}
+        *:visited {color: #7D7D7D}
+        body {background-color: #CCC; color: #7D7D7D;}
+        html, body, #map-canvas {width: 100%; height: 100%; z-index: 1; position: absolute; margin: 0;}
+        p {font-size: 12px; margin: 5px 0;}
+        strong {font-size: 14px;}
+        ul {list-style-type: none; padding-left: 0; margin-bottom: 0;}
+        li {font-family: Helvetica, sans-serif; padding: 20px 0 15px 15px;}
+        li:hover {background-color: #7D7D7D; color: white;}
+        a {text-decoration: none; color: #7D7D7D;}
+        hr { margin: 10px 0 0 0; color: orange; border-color: orange;}
+    </style>
+    <div id="map-canvas"></div>
+    <div id="search-container">
+        <div id="search-nav">
+            <input id="input" placeholder="Search…" type="input" data-bind="textInput: query, valueUpdate: 'keydown'" autocomplete="off"></input>
+            <div id="scroller">
+                <ul data-bind="template: {name: 'marker', foreach:markers}">
+                </ul>
+                <script type="text/html" id="marker">
+                    <div data-bind="visible: visible">
+                        <a href="#" data-bind="attr: {id: id}">
                             <li>
                                 <strong data-bind="text: title"></strong>
                                 <p data-bind="text: streetAddress"></p>
@@ -21,39 +38,31 @@
                             </li>
                         </a>
                     </div>
-                </ul>
+                </script>
             </div>
         </div>
-        <div class="blue-arrow-container">
-            <img class="blue-arrow" data-bind="click: toggleNav" src="img/blue-up-arrow.png" alt="blue arrow image">
+        <div id="blue-arrow-container">
+            <img id="blue-arrow" src="img/blue-up-arrow.png" alt="blue arrow image">
         </div>
     </div>
-    <div class="yelp-container">
-        <div class="yelp-search-nav">
-            <input class="input" data-bind="textInput: yelpQuery, event: {keypress: onEnter}" placeholder="Search Yelp…" type="text">
-            <div class="scroller">
-                <ul data-bind="foreach: {data: myObservableYelp, as: 'business'}">
-                    <div data-bind="visible: visible">
-                        <li class="yelp-item">
-                            <strong data-bind="text: name"></strong>
-                            <p data-bind="text: 'Rating: ' + rating"></p>
-                            <a class="url-link" target="_blank" data-bind="attr: { href: url }">Visit Yelp Page</a>
-                        </li>
-                    </div>
+    <div class="weather-container">
+        <div id="weather-image-container">
+            <img src="img/weather-underground.png" alt="Weather Underground Logo">
+            <div class="forecast">
+                <h3>Davis CA Weather Forecast</h3>
+                <ul style="margin: 0">
                 </ul>
             </div>
         </div>
-        <div class="blue-arrow-container">
-            <img class="yelp-blue-arrow" data-bind="click: toggleYelpNav" src="img/blue-up-arrow.png" alt="blue arrow image">
+        <div id="hide-weather">
+            <img style="width: 15px" src="img/small-up-arrow.png" style="margin: 0;" alt="Small up arrow">
         </div>
     </div>
     <div class="reset-container">
-        <button class="reset" data-bind="click:mapCanvasReset">Reset Map Zoom</button>
+        <button id="reset">Reset Map Zoom</button>
     </div>
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
     <script type="text/javascript" src="js/lib/knockout-3.3.0.js"></script>
-    <script type="text/javascript" src="js/lib/oauth-signature.min.js"></script>
     <script async type="text/javascript" src="js/script.js"></script>
-    <script async type="text/javascript" onerror="googleError()" src="https://maps.googleapis.com/maps/api/js?&key=AIzaSyCSvJI7gpOiVcpNNOMCpXM5nxg9cFCbkHk&v=3.exp&signed_in=false&callback=initMap"></script>
 </body>
 </html>
