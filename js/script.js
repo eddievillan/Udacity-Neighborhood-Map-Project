@@ -1,400 +1,361 @@
 var map;
-var mapOpts;
-var openInfoWindow;
-var yelp;
-var yelpQuery;
-var myObservableYelp = ko.observableArray();
+var markersArray = [];
 
-// Initializing the map and setting myMarkers
-function initMap() {
+function loadScript() {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src = 'https://maps.googleapis.com/maps/api/js?v=3.exp' +
+	  '&signed_in=false&callback=initialize';
+  document.body.appendChild(script);
+}
+window.onload = loadScript;
 
-	var mapCanvas = $('#google-map');
-	var canvasHeight = $('#google-map').height();
-	var canvasWidth = $('#google-map').width();
-	mapOpts = {
-		disableDefaultUI: true,
+// Initializing the map and setting markers
+function initialize() {
+	var mapOpts = {
+		zoom: 14,
 		center: new google.maps.LatLng(38.5449274, -121.7500067),
+		mapTypeControl: false,
+		disableDefaultUI: true
 	};
-
-	if(canvasWidth > 960 && canvasHeight > 920) {
-		mapOpts.zoom = 15;
-	}else if(canvasHeight < 500){
+	if($(window).width() <= 1080) {
 		mapOpts.zoom = 13;
-	}else {
-		mapOpts.zoom = 14;
+	}
+	if ($(window).width() < 850 || $(window).height() < 595) {
+		toggleNav();
 	}
 
-	if (canvasWidth < 600 || canvasHeight < 700) {
-		noNav();
-		noYelpNav();
+	map = new google.maps.Map(document.getElementById('map-canvas'), mapOpts);
+
+	setMarkers(markers);
+
+	setAllMap();
+
+	// Reset map on click handler and
+	// when window resize conditionals are met
+	function resetMap() {
+		var windowWidth = $(window).width();
+		if(windowWidth <= 1080) {
+			map.setZoom(13);
+			map.setCenter(mapOpts.center);
+		} else if(windowWidth > 1080) {
+			map.setZoom(14);
+			map.setCenter(mapOpts.center);
+		}
 	}
-
-	map = new google.maps.Map(document.getElementById('google-map'), mapOpts);
-
-	setMyMarkers();
+	$("#reset").click(function() {
+		resetMap();
+	});
+   $(window).resize(function() {
+		resetMap();
+	});
 }
 
-//If map doesn't load, display error
-function googleError() {
-	console.log("Google Map Error");
-	$('#google-map').prepend('<h1 style="padding: 0px 80px 0px 280px;display: flex; ' +
-		'font-size: 40px; text-align: center;">Error Google Map Couldn\'t Load</h1>');
+//Determines if markers should be visible
+//This function is passed in the knockout viewModel function
+function setAllMap() {
+  for (var i = 0; i < markers.length; i++) {
+	if(markers[i].bool === true) {
+	markers[i].holdMarker.setMap(map);
+	} else {
+	markers[i].holdMarker.setMap(null);
+	}
+  }
 }
 
 //Information about the different locations
-var myMarkers = [
-	{title: "Froggy's Grill",
+//Provides information for the markers
+var markers = [
+	{
+	title: "Froggy's Grill",
 	lat: 38.543407,
 	lng: -121.7389779,
 	streetAddress: "726 2nd St",
 	cityAddress: "Davis, CA 95616",
 	url: "www.tommyjs.com",
-	visible: ko.observable(true)},
-	{title: 'Davis Food Co-op',
+	id: "nav0",
+	visible: ko.observable(true),
+	bool: true
+	},
+	{
+	title: 'Davis Food Co-op',
 	lat: 38.5495216,
 	lng: -121.7398211,
 	streetAddress: "620 G St",
 	cityAddress: "Davis, CA 95616",
 	url: "www.ncg.coop/partners-find/ca/davis-food-co-op",
-	visible: ko.observable(true)},
+	id: "nav1",
+	visible: ko.observable(true),
+	bool: true
+	},
 	{title: 'Temple Coffee Roasters',
-	lat: 38.5445069,
-	lng: -121.7395449,
+	lat: 38.5445225,
+	lng: -121.7395607,
 	streetAddress: "239 G St",
 	cityAddress: "Davis, CA 95616",
 	url: "www.templecoffee.com",
-	visible: ko.observable(true)},
+	id: "nav2",
+	visible: ko.observable(true),
+	bool: true
+	},
 	{title: 'Zumapoke & Lush Ice',
 	lat: 38.5446983,
 	lng: -121.7396693,
 	streetAddress: "730 3rd St",
 	cityAddress: "Davis, CA 95616",
 	url: "www.zumapoke.com",
-	visible: ko.observable(true)},
+	id: "nav3",
+	visible: ko.observable(true),
+	bool: true
+	},
 	{title: 'UC Davis',
 	lat: 38.5292559,
 	lng: -121.7626134,
 	streetAddress: "1 Shields Ave",
 	cityAddress: "Davis, CA 95616",
 	url: "www.ucdavis.edu",
-	visible: ko.observable(true)},
+	id: "nav4",
+	visible: ko.observable(true),
+	bool: true
+	},
 	{title: 'Dumpling House & London Fish\'n Chips',
 	lat: 38.5426593,
 	lng: -121.7410902,
 	streetAddress: "129 E St",
 	cityAddress: "Davis, CA 95616",
 	url: "www.yelp.com/biz/dumpling-house-davis",
-	visible: ko.observable(true)},
+	id: "nav5",
+	visible: ko.observable(true),
+	bool: true
+	},
 	{title: 'Taqueria Davis',
-	lat: 38.5487920,
+	lat: 38.5487667,
 	lng: -121.7349302,
 	streetAddress: "505 L St",
 	cityAddress: "Davis, CA 95616",
 	url: "www.taqueriadavis.com/",
-	visible: ko.observable(true)},
+	id: "nav6",
+	visible: ko.observable(true),
+	bool: true
+	},
 	{title: 'Community Park',
 	lat:38.5586029,
 	lng: -121.7477632,
 	streetAddress: "1405 F St",
 	cityAddress: "Davis, CA 95616",
 	url: "localwiki.org/davis/Community_Park",
-	visible: ko.observable(true)}
+	id: "nav7",
+	visible: ko.observable(true),
+	bool: true
+	}
 ];
 
-// Generates Google Street Image depending on lat and lng of location
-var googStreetImage;
-function setImage() {
-	var googStreetUrl = 'https://maps.googleapis.com/maps/api/streetview?size=180x90&location=';
+//Get Google Street View Image for each inidividual marker
+	//Passed lat and lng to get each image location
+var headingImageView = [5, 235, 55, 170, 190, 240, -10, 10, 190];
+var streetViewImage;
+var streetViewUrl = 'https://maps.googleapis.com/maps/api/streetview?size=180x90&location=';
 
-	googStreetImage = googStreetUrl + myMarkers[i].lat + ',' +
-					  myMarkers[i].lng + '&fov=70&pitch=8';
+function determineImage() {
+	if (i === 3) {
+		streetViewImage = streetViewUrl + '38.892052,-77.008888&fov=75&heading=' + headingImageView[i] + '&pitch=10';
+	} else if (i === 4) {
+		streetViewImage = streetViewUrl +
+						markers[i].streetAddress + ',' + markers[i].cityAddress +
+						'&fov=75&heading=' + headingImageView[i] + '&pitch=10';
+	} else {
+	   streetViewImage = streetViewUrl +
+						markers[i].lat + ',' + markers[i].lng +
+						'&fov=75&heading=' + headingImageView[i] + '&pitch=10';
+					}
 }
 
-// Set Markers on map, generate info windows
-// Add event listener for markers to open info window on click
-function setMyMarkers() {
+//Sets the markers on the map within the initialize function
+	//Sets the infoWindows to each individual marker
+	//The markers are inidividually set using a for loop
+function setMarkers(location) {
 
-	for(i=0; i<myMarkers.length; i++) {
-		myMarkers[i].googleMarker = new google.maps.Marker({
-		  position: new google.maps.LatLng(myMarkers[i].lat, myMarkers[i].lng),
+	for(i=0; i<location.length; i++) {
+		location[i].holdMarker = new google.maps.Marker({
+		  position: new google.maps.LatLng(location[i].lat, location[i].lng),
 		  map: map,
-		  title: myMarkers[i].title,
+		  title: location[i].title,
 		  icon: {
-			url: 'img/map-marker.png',
+			url: 'img/map-marker-tiny2.png',
 			size: new google.maps.Size(30, 30),
 			origin: new google.maps.Point(0, 0),
 			anchor: new google.maps.Point(12.5, 40)
 			},
+		  shape: {
+			coords: [1,25,-40,-25,1],
+			type: 'poly'
+		  }
 		});
 
 		//function to place google street view images within info windows
-		setImage();
+		determineImage();
 
 		//Binds infoWindow content to each marker
-		myMarkers[i].infoWindowContent = '<img src="' + googStreetImage +
-									'" alt="Google Street View at ' + myMarkers[i].title +
-									'"><br><strong>' +
-									myMarkers[i].title + '</strong><br><a class="web-links" href="http://' +
-									myMarkers[i].url + '" target="_blank">' + myMarkers[i].url + '</a><br><p>' +
-									myMarkers[i].streetAddress + '<br>' +
-									myMarkers[i].cityAddress + '</p>';
+		location[i].contentString = '<img src="' + streetViewImage +
+									'" alt="Street View Image of ' + location[i].title + '"><br><hr style="margin-bottom: 5px"><strong>' +
+									location[i].title + '</strong><br><p>' +
+									location[i].streetAddress + '<br>' +
+									location[i].cityAddress + '<br></p><a class="web-links" href="http://' + location[i].url +
+									'" target="_blank">' + location[i].url + '</a>';
 
-		myMarkers[i].infowindow = new google.maps.InfoWindow({
-			content: myMarkers[i].infoWindowContent
+		var infowindow = new google.maps.InfoWindow({
+			content: markers[i].contentString
 		});
-		// Zoom, center, and open infowindow on marker click. If theres an open infowindow, close it first before
-		// opening a new one.
-		new google.maps.event.addListener(myMarkers[i].googleMarker, 'click', (function(marker, i) {
-		  return function() {
-		  	if(openInfoWindow != null){
-		  		openInfoWindow.close();
-		  	}
 
-			myMarkers[i].infowindow.setContent(myMarkers[i].infoWindowContent);
-			myMarkers[i].infowindow.open(map,this);
-			openInfoWindow = myMarkers[i].infowindow;
-			map.setZoom(16);
+		//Click marker to view infoWindow
+		//zoom in and center location on click
+		new google.maps.event.addListener(location[i].holdMarker, 'click', (function(marker, i) {
+		  return function() {
+			infowindow.setContent(location[i].contentString);
+			infowindow.open(map,this);
 			map.setCenter(marker.getPosition());
-			marker.setAnimation(google.maps.Animation.DROP);
+			location[i].picbool = true;
 		  };
-		})(myMarkers[i].googleMarker, i));
+		})(location[i].holdMarker, i));
+
+		//Click nav element to view infoWindow
+		//zoom in and center location on click
+		var searchNav = $('#nav' + i);
+		searchNav.click((function(marker, i) {
+		  return function() {
+			infowindow.setContent(location[i].contentString);
+			infowindow.open(map,marker);
+			map.setZoom(15);
+			map.setCenter(marker.getPosition());
+			location[i].picbool = true;
+		  };
+		})(location[i].holdMarker, i));
 	}
 }
 
-// This oauthentication 1.0a code was found at the following link
-// https://discussions.udacity.com/t/how-to-make-ajax-request-to-yelp-api/13699/5
-
-/**
- * Generates a random number and returns it as a string for OAuthentication
- * @return {string}
- */
-function nonce_generate() {
-  return (Math.floor(Math.random() * 1e12).toString());
-}
-
-var yelp_url = 'https://api.yelp.com/v2/search';
-var yelp_key_secret = 'K6FRrwS70ySFSyOcN4lBfgw7xec';
-var yelp_token_secret = 'v8Qk6-Q20sAMkB4RFat3vxQKlx8';
-
-var parameters = {
-  oauth_consumer_key: 'B3RvZpcnjESLKCMRkZgKvg',
-  oauth_token: 'CdQsN-p_PEKGuEN4gIdoPLMXWqPCmCb5',
-  oauth_nonce: nonce_generate(),
-  oauth_timestamp: Math.floor(Date.now()/1000),
-  oauth_signature_method: 'HMAC-SHA1',
-  oauth_version : '1.0',
-  // This is crucial to include for jsonp implementation
-  //	in AJAX or else the oauth-signature will be wrong.
-  callback: 'cb',
-  term: 'Chinese',
-  location: 'Davis, CA',
-  limit: '10'
-};
-
-var encodedSignature = oauthSignature.generate('GET',yelp_url,
-	parameters, yelp_key_secret, yelp_token_secret);
-parameters.oauth_signature = encodedSignature;
-
-var settings = {
-  url: yelp_url,
-  data: parameters,
-   // This is crucial to include as well to prevent jQuery from adding on a cache-buster
-   // 	parameter "_=23489489749837", invalidating our oauth-signature
-  cache: true,
-  dataType: 'jsonp',
-  success: function(results) {
-  	yelp = results.businesses;
-  	for(var i = 0; i < yelp.length; i++) {
-  		yelp[i].visible = ko.observable(true);
-  		myObservableYelp.push(yelp[i]);
-  	}
-
-    // Do stuff with results
-  },
-  fail: function() {
-  	console.log('yelp request failed');
-    // Do stuff on fail
-  }
-};
-
-// Send AJAX query via jQuery library.
-$.ajax(settings);
-
-
-// Recreate oauth info and recall yelp API GET request
-function searchYelp() {
-	var newSearchParameters = {
-		oauth_consumer_key: 'B3RvZpcnjESLKCMRkZgKvg',
-		oauth_token: 'CdQsN-p_PEKGuEN4gIdoPLMXWqPCmCb5',
-		oauth_nonce: nonce_generate(),
-		oauth_timestamp: Math.floor(Date.now()/1000),
-		oauth_signature_method: 'HMAC-SHA1',
-		oauth_version : '1.0',
-		// This is crucial to include for jsonp implementation
-		//	in AJAX or else the oauth-signature will be wrong.
-		callback: 'cb',
-		term: viewModel.yelpQuery(),
-		location: 'Davis, CA',
-		limit: '10'
-	};
-	encodedSignature = oauthSignature.generate('GET',yelp_url,
-	newSearchParameters, yelp_key_secret, yelp_token_secret);
-	console.log(encodedSignature);
-	newSearchParameters.oauth_signature = encodedSignature;
-	var newSettings = {
-		url: yelp_url,
-		data: newSearchParameters,
-		// This is crucial to include as well to prevent jQuery from adding on a cache-buster
-		// 	parameter "_=23489489749837", invalidating our oauth-signature
-		cache: true,
-		dataType: 'jsonp',
-		success: function(results) {
-			yelp = results.businesses;
-			var oldArray = myObservableYelp.removeAll();
-			for(var i = 0; i < yelp.length; i++) {
-				yelp[i].visible = ko.observable(true);
-				myObservableYelp.push(yelp[i]);
-			}
-
-		// Do stuff with results
-		},
-		fail: function() {
-			console.log('yelp request failed');
-		// Do stuff on fail
-		}
-	};
-	$.ajax(newSettings);
-}
-
+//Search through different locations in nav bar with knockout.js
+	//only display markers and nav elements that match query result
 var viewModel = {
 	query: ko.observable(''),
-	yelpQuery: ko.observable(''),
-	mapCanvasReset: function() {
-		mapCanvas = $('#google-map');
-		var canvasHeight = $('#google-map').height();
-		var canvasWidth = $('#google-map').width();
-
-		if(openInfoWindow != null) {
-			openInfoWindow.close();
-		}
-		noNav();
-		noYelpNav();
-		map.setCenter(mapOpts.center);
-		if(canvasWidth > 960 && canvasHeight > 920) {
-			map.setZoom(15);
-		}
-		else if(canvasHeight < 500) {
-			map.setZoom(13);
-		}
-		else {
-			map.setZoom(14);
-		}
-	},
-	// open info window of marker that is clicked
-	openWindow: function(marker) {
-		if(!marker.infowindow){
-			return;
-		} else {
-			if(openInfoWindow) {
-				openInfoWindow.close();
-			}
-			marker.infowindow.setContent(marker.infoWindowContent);
-			marker.infowindow.open(map, marker.googleMarker);
-			marker.googleMarker.setAnimation(google.maps.Animation.DROP);
-			openInfoWindow = marker.infowindow;
-			map.setZoom(16);
-			map.setCenter(marker.googleMarker.getPosition());
-		}
-	},
-	// Toggle nav on the left side
-	toggleNav: function() {
-		if(navVisible) {
-			return noNav();
-		} else {
-			yesNav();
-		}
-	},
-	// Toggle Yelp nav on the right side
-	toggleYelpNav: function() {
-		if(yelpNavVisible) {
-			return noYelpNav();
-		} else {
-			yesYelpNav();
-		}
-	},
-	// When enter is clicked, execute function 'searchYelp'
-	// I use this for the yelp search in the right side navigation
-	onEnter: function(d,e) {
-		e.keyCode === 13 && searchYelp();
-		return true;
-	}
 };
 
-// Search through myMarkers using knockout dependent observable
-viewModel.myMarkers = ko.dependentObservable(function() {
-    var search = viewModel.query().toLowerCase();
-    return ko.utils.arrayFilter(myMarkers, function(marker) {
-    	var lowerCaseMarkerTitle = marker.title.toLowerCase();
-    	if (lowerCaseMarkerTitle.indexOf(search) >= 0) {
-            return marker.visible(true);
-        } else {
-            return marker.visible(false);
-        }
-    });
+viewModel.markers = ko.dependentObservable(function() {
+	var self = this;
+	var search = self.query().toLowerCase();
+	return ko.utils.arrayFilter(markers, function(marker) {
+	if (marker.title.toLowerCase().indexOf(search) >= 0) {
+			marker.bool = true;
+			return marker.visible(true);
+		} else {
+			marker.bool = false;
+			setAllMap();
+			return marker.visible(false);
+		}
+	});
 }, viewModel);
 
 ko.applyBindings(viewModel);
 
-//Toggle Yelp Nav on the right-side on click
-var yelpNavVisible = true;
-function noYelpNav() {
-	$(".yelp-search-nav").animate({
-				height: 0,
-			}, 500);
-			$(".yelp-blue-arrow").attr("src", "img/blue-down-arrow.png");
-			yelpNavVisible = false;
-}
-function yesYelpNav() {
-	$(".yelp-search-nav").show();
-			var scrollerHeight = $(".scroller").height() + 200;
-			if($(window).height() < 600) {
-				$(".yelp-search-nav").animate({
-					height: scrollerHeight - 100,
-				}, 500);
-			} else {
-			$(".yelp-search-nav").animate({
-				height: scrollerHeight,
-			}, 500);
-			}
-			$(".yelp-blue-arrow").attr("src", "img/blue-up-arrow.png");
-			yelpNavVisible = true;
-}
-
-//Toggle Nav on the left-side on click
+//Toggle Nav on the left side on click
+// "toggleNav" Bound to the blue-arrow button
 var navVisible = true;
 function noNav() {
-	$(".marker-search-nav").animate({
+	$("#search-nav").animate({
 				height: 0,
 			}, 500);
-			$(".blue-arrow").attr("src", "img/blue-down-arrow.png");
+			$("#blue-arrow").attr("src", "img/blue-down-arrow.png");
 			navVisible = false;
 }
 function yesNav() {
-	$(".marker-search-nav").show();
-			var scrollerHeight = $("#scroller").height() + 500;
+	$("#search-nav").show();
+			var scrollerHeight = $("#scroller").height() + 55;
 			if($(window).height() < 600) {
-				$(".marker-search-nav").animate({
+				$("#search-nav").animate({
 					height: scrollerHeight - 100,
 				}, 500, function() {
 					$(this).css('height','auto').css("max-height", 439);
 				});
 			} else {
-			$(".marker-search-nav").animate({
+			$("#search-nav").animate({
 				height: scrollerHeight,
 			}, 500, function() {
 				$(this).css('height','auto').css("max-height", 549);
 			});
 			}
-			$(".blue-arrow").attr("src", "img/blue-up-arrow.png");
+			$("#blue-arrow").attr("src", "img/blue-up-arrow.png");
 			navVisible = true;
 }
+
+
+function toggleNav() {
+	if(navVisible === true) {
+			noNav();
+
+	} else {
+			yesNav();
+	}
+}
+$("#blue-arrow").click(toggleNav);
+
+//Expand .forecast div on click to see Weather Underground forecast
+//and shrink back when additionally clicked
+	//size is repsonsive to smaller screens
+var weatherContainer = $("#weather-image-container");
+var isWeatherVisible = false;
+weatherContainer.click(function() {
+	if(isWeatherVisible === false) {
+		if($(window).width() < 670) {
+			$(".forecast li").css("display", "block");
+			weatherContainer.animate({
+				width: "245"
+			}, 500);
+		} else {
+			$(".forecast li").css("display", "inline-block");
+			weatherContainer.animate({
+				width: "380"
+			}, 500);
+		}
+		isWeatherVisible = true;
+	} else {
+		weatherContainer.animate({
+		width: "80"
+	}, 500);
+		isWeatherVisible = false;
+	}
+});
+
+//GET Weather Underground JSON
+var weatherUgUrl = "http://api.wunderground.com/api/8b2bf4a9a6f86794/conditions/q/CA/Davis.json";
+
+$.getJSON(weatherUgUrl, function(data) {
+	var list = $(".forecast ul");
+	detail = data.current_observation;
+	list.append('<li>Temp: ' + detail.temp_f + '° F</li>');
+	list.append('<li><img style="width: 25px" src="' + detail.icon_url + '">  ' + detail.icon + '</li>');
+}).error(function(e){
+		$(".forecast").append('<p style="text-align: center;">Sorry Weather Could Not Be Loaded</p>');
+	});
+
+// toggle Weather forecast div
+// toggleWeather bound to toggle-weather
+var isWeatherImageVisible = true;
+var hideWeatherArrow = $("#hide-weather").find("img");
+function hideWeather() {
+	if(isWeatherImageVisible === true) {
+			$("#weather-image-container").animate({
+				height: 0,
+				paddingTop: 0
+			}, 300);
+		isWeatherImageVisible = false;
+		hideWeatherArrow.attr("src", "img/small-down-arrow.png");
+	} else {
+			$("#weather-image-container").animate({
+				height: 60,
+				paddingTop: 5
+			}, 300);
+		isWeatherImageVisible = true;
+		hideWeatherArrow.attr("src", "img/small-up-arrow.png");
+	}
+}
+
+$("#hide-weather").click(hideWeather);
